@@ -16,4 +16,4 @@ SLAMTIPS ("📈 Cuota 1,50"), Pensador Apuestas ("¡Nueva Apuesta!" + link), JJ 
 - Resultados (✅❌), programación, promociones VIP y avisos ("Pick en 2'") NO deben pasar.
 
 ## Estado
-Código hecho y commiteado. Pendiente por el usuario: `gh auth login`, crear repo, secretos, primera ejecución (ver README).
+En marcha desde 2026-10-16: repo janpc/picks, 6 secretos puestos, workflow ejecutándose. CANALES = 15 canales gratuitos; CANALES_FOTO = AleixTenis (el de Zverev, -1001342757110) y KrlosTM (-1001093062692). Pendiente verificar que Claude clasifica bien cuando lleguen mensajes reales (`gh run view --log`).
