@@ -16,4 +16,4 @@ SLAMTIPS ("📈 Cuota 1,50"), Pensador Apuestas ("¡Nueva Apuesta!" + link), JJ 
 - Resultados (✅❌), programación, promociones VIP y avisos ("Pick en 2'") NO deben pasar.
 
 ## Estado
-En marcha desde 2026-10-16: repo janpc/picks, 6 secretos puestos, workflow ejecutándose. CANALES = 15 canales gratuitos; CANALES_FOTO = AleixTenis (el de Zverev, -1001342757110) y KrlosTM (-1001093062692). Pendiente verificar que Claude clasifica bien cuando lleguen mensajes reales (`gh run view --log`).
+En marcha desde 2026-10-16: repo janpc/picks, 6 secretos puestos, workflow ejecutándose. CANALES = 15 canales gratuitos; CANALES_FOTO = AleixTenis (el de Zverev, -1001342757110) y KrlosTM (-1001093062692). Destino: canal privado cuyo nombre está en el secreto DESTINO (vacío = Mensajes guardados). Claude descarga y mira las fotos (`--allowedTools Read`). Token OAuth arreglado el 2026-10-16 (estaba partido en 2 líneas; el script ahora quita espacios).
