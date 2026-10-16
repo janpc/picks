@@ -19,6 +19,7 @@ jobs:
           CANALES: ${{ secrets.CANALES }}
           CANALES_FOTO: ${{ secrets.CANALES_FOTO }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          DESTINO: ${{ secrets.DESTINO }}
       - uses: actions/cache/save@v4
         if: always()
         with: {path: state.json, key: "state-${{ github.run_id }}"}

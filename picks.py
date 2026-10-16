@@ -2,7 +2,6 @@ import os, json, re, asyncio, subprocess
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
-DESTINO = "me"  # Mensajes guardados, o el @ de tu canal privado
 STATE = "state.json"
 
 # Plan B si Claude falla: reglas por canal
@@ -29,10 +28,14 @@ def clasificar(textos):
     prompt = ("Mensajes de canales de apuestas de Telegram, en orden. Devuelve SOLO un JSON con la lista de "
               "números de los mensajes que publican una apuesta nueva para jugar (pick gratuito). "
               "No cuentes resultados, resúmenes, estadísticas, promociones del VIP ni avisos de que viene un pick. "
-              "[foto] = el mensaje lleva una imagen.\n\n" + lista)
-    out = subprocess.run(["claude", "-p", prompt, "--model", "haiku"],
-                         capture_output=True, text=True, timeout=180, check=True).stdout
-    return {int(i) for i in json.loads(re.search(r"\[[\d,\s]*\]", out).group())}
+              "[foto: ruta] = el mensaje lleva esa imagen: ábrela con Read y cuéntala solo si muestra una apuesta "
+              "por jugar (boleto, partido + cuota/stake), no si es un resultado, ganancias, ✅ o publicidad.\n\n" + lista)
+    env = {**os.environ, "CLAUDE_CODE_OAUTH_TOKEN": os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "").strip()}
+    r = subprocess.run(["claude", "-p", prompt, "--model", "haiku", "--allowedTools", "Read"],
+                       capture_output=True, text=True, timeout=600, env=env)
+    if r.returncode:
+        raise RuntimeError(r.stderr or r.stdout)
+    return {int(i) for i in json.loads(re.search(r"\[[\d,\s]*\]", r.stdout).group())}
 
 
 async def main():
@@ -42,7 +45,11 @@ async def main():
 
     async with TelegramClient(StringSession(os.environ["TG_SESSION"]),
                               int(os.environ["API_ID"]), os.environ["API_HASH"]) as client:
-        await client.get_dialogs()  # para poder usar IDs numéricos
+        os.makedirs("fotos", exist_ok=True)
+        dialogs = await client.get_dialogs()  # para poder usar IDs numéricos
+        destino = os.environ.get("DESTINO", "").strip() or "me"  # nombre del canal, o Mensajes guardados
+        if destino != "me":
+            destino = next(d.entity for d in dialogs if d.name == destino)
         nuevos = []  # (canal, mensaje)
         for canal in canales:
             chat = int(canal) if canal.lstrip("-").isdigit() else canal
@@ -55,7 +62,10 @@ async def main():
                 nuevos.append((canal, m))
                 state[canal] = m.id
 
-        textos = [f"({c}) {m.raw_text or ''}{' [foto]' if m.photo else ''}" for c, m in nuevos]
+        textos = []
+        for c, m in nuevos:
+            foto = m.photo and await m.download_media(file=os.path.abspath(f"fotos/{m.chat_id}_{m.id}.jpg"))
+            textos.append(f"({c}) {m.raw_text or ''}{f' [foto: {foto}]' if foto else ''}")
         try:
             elegidos = clasificar(textos) if nuevos else set()
         except Exception as e:
@@ -65,7 +75,7 @@ async def main():
         print(f"{len(nuevos)} mensajes nuevos, {len(elegidos)} apuestas")
         for i in sorted(elegidos):
             if i < len(nuevos):
-                await nuevos[i][1].forward_to(DESTINO)
+                await nuevos[i][1].forward_to(destino)
 
     json.dump(state, open(STATE, "w"))
 
