@@ -30,7 +30,7 @@ def clasificar(textos):
               "No cuentes resultados, resúmenes, estadísticas, promociones del VIP ni avisos de que viene un pick. "
               "[foto: ruta] = el mensaje lleva esa imagen: ábrela con Read y cuéntala solo si muestra una apuesta "
               "por jugar (boleto, partido + cuota/stake), no si es un resultado, ganancias, ✅ o publicidad.\n\n" + lista)
-    env = {**os.environ, "CLAUDE_CODE_OAUTH_TOKEN": os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "").strip()}
+    env = {**os.environ, "CLAUDE_CODE_OAUTH_TOKEN": "".join(os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "").split())}
     r = subprocess.run(["claude", "-p", prompt, "--model", "haiku", "--allowedTools", "Read"],
                        capture_output=True, text=True, timeout=600, env=env)
     if r.returncode:
