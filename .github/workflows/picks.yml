@@ -1,0 +1,24 @@
+name: picks
+on:
+  schedule: [{cron: "*/5 * * * *"}]
+  workflow_dispatch:
+concurrency: picks
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        with: {path: state.json, key: "state-${{ github.run_id }}", restore-keys: state-}
+      - run: pip install telethon && npm install -g @anthropic-ai/claude-code
+      - run: python picks.py
+        env:
+          TG_SESSION: ${{ secrets.TG_SESSION }}
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
+          CANALES: ${{ secrets.CANALES }}
+          CANALES_FOTO: ${{ secrets.CANALES_FOTO }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      - uses: actions/cache/save@v4
+        if: always()
+        with: {path: state.json, key: "state-${{ github.run_id }}"}
