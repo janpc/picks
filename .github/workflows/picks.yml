@@ -1,17 +1,18 @@
 name: picks
 on:
-  schedule: [{cron: "*/5 * * * *"}]
+  schedule: [{cron: "0 * * * *"}]  # cada hora; si hay una corriendo, la siguiente espera y la releva
   workflow_dispatch:
 concurrency: picks
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache/restore@v4
         with: {path: state.json, key: "state-${{ github.run_id }}", restore-keys: state-}
       - run: pip install telethon && npm install -g @anthropic-ai/claude-code
-      - run: python picks.py
+      - run: python -u picks.py
         env:
           TG_SESSION: ${{ secrets.TG_SESSION }}
           API_ID: ${{ secrets.API_ID }}
@@ -20,6 +21,8 @@ jobs:
           CANALES_FOTO: ${{ secrets.CANALES_FOTO }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           DESTINO: ${{ secrets.DESTINO }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          DURACION: 20400  # 5h40m conectado, revisando cada minuto
       - uses: actions/cache/save@v4
         if: always()
         with: {path: state.json, key: "state-${{ github.run_id }}"}

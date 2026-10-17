@@ -1,5 +1,7 @@
 # Ejecuta: python3 test_filtro.py  (tras cambiar las reglas de picks.py)
-from picks import es_apuesta
+from datetime import datetime, timedelta
+from types import SimpleNamespace as M
+from picks import es_apuesta, agrupar
 
 SI = [
     "🎾 #TEAMSLAMTIPS - WTA WUHAN🇨🇳\n\n👉🏼 Li Gana el encuentro\n\n📈 Cuota 1,50 📍STAKE 5💎\n\n📎 Podéis realizar la apuesta AQUÍ",
@@ -59,4 +61,11 @@ FOTO_NO = ["3-0 para Happek ✅\n\nVuelve a salir muy fácil.", "🔴 Gunduz/Yig
 fallos = [t for t in SI if not es_apuesta(t)] + [t for t in NO if es_apuesta(t)] \
        + [t for t in FOTO_SI if not es_apuesta(t, True, True)] + [t for t in FOTO_NO if es_apuesta(t, True, True)]
 assert not fallos, fallos
+
+# agrupar: álbum junto, fotos seguidas juntas, texto suelto aparte
+t0 = datetime(2026, 1, 1)
+ms = [M(grouped_id=7, photo=1, date=t0), M(grouped_id=7, photo=1, date=t0), M(grouped_id=None, photo=None, date=t0),
+      M(grouped_id=None, photo=1, date=t0), M(grouped_id=None, photo=1, date=t0 + timedelta(seconds=60)),
+      M(grouped_id=None, photo=1, date=t0 + timedelta(minutes=10))]
+assert [len(g) for g in agrupar(ms)] == [2, 1, 2, 1], [len(g) for g in agrupar(ms)]
 print("ok")
