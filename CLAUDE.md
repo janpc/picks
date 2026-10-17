@@ -3,7 +3,9 @@
 Userbot de Telegram (Telethon, con la cuenta del usuario) que corre en GitHub Actions cada 5 min y reenvía a "Mensajes guardados" solo las apuestas gratuitas de canales de tipsters. El usuario habla español.
 
 ## Decisiones tomadas
-- GitHub Actions (repo público, minutos ilimitados) en vez de servidor: sin tarjeta, a cambio de 5–15 min de retraso. Las apuestas live (PickHub, Pensador Fútbol Europeo, Tercera Apuestas) pueden llegar tarde; si importa, migrar a Oracle Cloud Always Free con systemd.
+- GitHub Actions (repo público, minutos ilimitados) en vez de servidor. El cron real salta cada 2–4 h, así que cada job se queda conectado 5h40m (`DURACION`) revisando cada minuto, y el cron horario deja otro en cola que lo releva. Si aun así falla, migrar a Oracle Cloud Always Free con systemd.
+- Notificaciones: lo que reenvía la cuenta del usuario no le suena. Un bot (`BOT_TOKEN`, admin del canal DESTINO) reenvía desde el canal al chat del usuario con el bot.
+- Claude (`MODELO = "sonnet"`) recibe por canal 5 mensajes de contexto y los nuevos agrupados (`agrupar`: álbumes y fotos seguidas ≤2 min). Espera 45 s si el canal aún está publicando.
 - Estado (último ID por canal) en `actions/cache`, no en commits.
 - Clasificación: `claude -p --model haiku` con la suscripción del usuario (`CLAUDE_CODE_OAUTH_TOKEN`), un único lote por ejecución. Si falla, reglas regex `SI` + `es_apuesta()` en `picks.py`.
 - `CANALES_FOTO`: canales donde la apuesta es solo una foto (KrlosTM, el de Zverev): foto + texto ≤60 chars sin ✅❌🔴.
