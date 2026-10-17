@@ -28,12 +28,14 @@ def clasificar(lista):
     prompt = ("Filtras canales de tipsters de Telegram para un usuario. Abajo, por canal, van los últimos mensajes "
               "ya vistos (CONTEXTO, solo para entender) y los NUEVOS numerados [n]. Un [n] puede ser un álbum o una "
               "ráfaga con varias fotos: decide sobre el conjunto. Abre cada foto con Read y léela entera.\n"
-              "Devuelve SOLO un JSON con los números de los NUEVOS que publican una apuesta gratuita para jugar ahora: "
-              "un pick concreto (partido/selección + cuota o stake) o la captura de un boleto aún sin resolver.\n"
-              "NO cuentes: boletos ya resueltos (✅❌, 'ganada', 'cobrado', marcador final), capturas de ganancias, "
-              "estadísticas o resúmenes, programación, promociones del VIP o de pago, avisos de que viene un pick, "
-              "encuestas, memes. Usa el contexto: una foto tras 'pick de hoy 👇' es la apuesta; una foto tras ✅ o "
-              "'otro acierto' es un resultado.\n\n" + lista)
+              "Devuelve SOLO un JSON con los números de los NUEVOS que publican una apuesta gratuita que el usuario "
+              "pueda copiar YA con lo que se ve: evento + selección concreta (y normalmente cuota o stake), en texto o "
+              "en la imagen. Si no se sabe QUÉ apostar, no es un pick.\n"
+              "NO cuentes: boletos con la selección tapada, borrosa o recortada (fardar del VIP); boletos ya resueltos "
+              "(✅❌, 'ganada', 'cobrado', marcador final) o capturas de ganancias/importes; anuncios de otros canales "
+              "o tipsters aunque digan 'gratis'; avisos de que viene un pick ('Pick FREE 21:00h', 'en 2 minutos'); "
+              "estadísticas, resúmenes, programación, promociones VIP o de pago, encuestas, memes. Usa el contexto: una "
+              "foto tras 'pick de hoy 👇' es la apuesta; una foto tras ✅ o 'otro acierto' es un resultado.\n\n" + lista)
     env = {**os.environ, "CLAUDE_CODE_OAUTH_TOKEN": "".join(os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "").split())}
     r = subprocess.run(["claude", "-p", prompt, "--model", MODELO, "--allowedTools", "Read"],
                        capture_output=True, text=True, timeout=600, env=env)
