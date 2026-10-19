@@ -104,8 +104,11 @@ def db(metodo, ruta, datos=None):
         h["Authorization"] = "Bearer " + key
     req = urllib.request.Request(os.environ["SUPABASE_URL"].strip().rstrip("/") + "/rest/v1/" + ruta,
                                  None if datos is None else json.dumps(datos).encode(), h, method=metodo)
-    with urllib.request.urlopen(req, timeout=30) as r:
-        cuerpo = r.read()
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            cuerpo = r.read()
+    except urllib.error.HTTPError as e:  # que se vea qué dice Supabase, no solo el código
+        raise RuntimeError(f"Supabase {e.code} en {ruta.split('?')[0]}: {e.read().decode()[:300]}") from None
     return json.loads(cuerpo) if cuerpo else None
 
 
