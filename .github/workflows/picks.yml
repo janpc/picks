@@ -22,6 +22,7 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           DESTINO: ${{ secrets.DESTINO }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          STATS: ${{ secrets.STATS }}
           DURACION: 20400  # 5h40m conectado, revisando cada minuto
       - uses: actions/cache/save@v4
         if: always()

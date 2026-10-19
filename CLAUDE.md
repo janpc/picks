@@ -10,6 +10,8 @@ Userbot de Telegram (Telethon, con la cuenta del usuario) que corre en GitHub Ac
 - Clasificación: `claude -p --model haiku` con la suscripción del usuario (`CLAUDE_CODE_OAUTH_TOKEN`), un único lote por ejecución. Si falla, reglas regex `SI` + `es_apuesta()` en `picks.py`.
 - `CANALES_FOTO`: canales donde la apuesta es solo una foto (KrlosTM, el de Zverev): foto + texto ≤60 chars sin ✅❌🔴.
 
+- Estadísticas: Claude devuelve `{picks:[{n,pick,cuota,stake}], resultados:[{id,res,cuota}]}`; los picks enviados se guardan en `state.json["_picks"]` (actions/cache) y los resultados se emparejan con los PENDIENTES del canal. A los 4 días sin resultado = "sin resultado" (tipsters que esconden fallos). Se publica cada resultado y una tabla fijada (`_tabla`) en el grupo del secreto `STATS`. Si Claude falla, esa apuesta no cuenta.
+
 ## Canales analizados (formato de sus picks)
 SLAMTIPS ("📈 Cuota 1,50"), Pensador Apuestas ("¡Nueva Apuesta!" + link), JJ ("💰CUOTA 1.67"), Pensador Challenger/MMA/ATP/Baloncesto ("📈 @1.61", "Pick N"), Pensador WTA FREE ("Pick 18 / Stake 0.50"), PickHub ("s3 https://..."), canal Zverev (fotos), KrlosTM (foto sin texto), LBTENNIS ("🔔 PREPARTIDO !!"), Pensador Fútbol Europeo ("Stake 1" sola), Pensador Bot ("Pick 27 - 08/2026", casi sin picks gratis desde sept.), Tercera Apuestas ("…Stake 1", "Cuota 23", "crear apuesta aquí").
 

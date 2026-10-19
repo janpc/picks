@@ -70,3 +70,11 @@ ms = [M(grouped_id=7, photo=1, date=t0), M(grouped_id=7, photo=1, date=t0), M(gr
       M(grouped_id=None, photo=1, date=t0 + timedelta(minutes=10))]
 assert [len(g) for g in agrupar(ms)] == [2, 1, 2, 1], [len(g) for g in agrupar(ms)]
 print("ok")
+
+# estadísticas
+from picks import ganancia, tabla
+h = [dict(nombre="A", stake=2, cuota=1.5, res="ganada"), dict(nombre="A", stake=1, cuota=2, res="perdida"),
+     dict(nombre="A", stake=1, cuota=None, res="nula"), dict(nombre="B", stake=1, cuota=3, res=None)]
+assert [ganancia(p) for p in h] == [1.0, -1, 0, 0]
+assert "1✅ 1❌ 1➖ · +0.00u · yield +0%" in tabla(h) and "1 pendientes" in tabla(h), tabla(h)
+print("ok")
