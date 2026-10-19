@@ -3,7 +3,7 @@
 Userbot de Telegram (Telethon, con la cuenta del usuario) que corre en GitHub Actions cada 5 min y reenvía a "Mensajes guardados" solo las apuestas gratuitas de canales de tipsters. El usuario habla español.
 
 ## Decisiones tomadas
-- GitHub Actions (repo público, minutos ilimitados) en vez de servidor. El cron real salta cada 2–4 h, así que cada job se queda conectado 5h40m (`DURACION`) revisando cada minuto, y el cron horario deja otro en cola que lo releva. Si aun así falla, migrar a Oracle Cloud Always Free con systemd.
+- GitHub Actions en vez de servidor. El repo TIENE que ser público (minutos ilimitados): estuvo privado y el 2026-10-18 se agotaron los 2.000 min gratis ("recent account payments have failed"). El cron real salta cada 2–4 h, así que cada job se queda conectado 5h40m (`DURACION`) revisando cada minuto, y el cron horario deja otro en cola que lo releva. Si aun así falla, migrar a Oracle Cloud Always Free con systemd.
 - Notificaciones: lo que reenvía la cuenta del usuario no le suena. Un bot (`BOT_TOKEN`, admin del canal DESTINO) reenvía desde el canal al chat del usuario con el bot.
 - Claude (`MODELO = "sonnet"`) recibe por canal 5 mensajes de contexto y los nuevos agrupados (`agrupar`: álbumes y fotos seguidas ≤2 min). Espera 45 s si el canal aún está publicando.
 - Estado (último ID por canal) en `actions/cache`, no en commits.
