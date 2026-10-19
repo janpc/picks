@@ -15,8 +15,9 @@ Claude decide qué es apuesta; si falla, se usan las reglas de `picks.py`.
    | `API_ID` | el api_id |
    | `API_HASH` | el api_hash |
    | `TG_SESSION` | la cadena del paso 2 |
-   | `CANALES` | IDs separados por comas: `-1001234,-1005678,...` |
-   | `CANALES_FOTO` | de esos, los que publican la apuesta solo en foto (ej. KrlosTM) |
+   | `DESTINO` / `STATS` | nombre del canal de picks / de estadísticas |
+   | `BOT_TOKEN` | token de @BotFather (bot admin del canal de picks) |
+   | `SUPABASE_URL` / `SUPABASE_KEY` | Project URL y clave secreta de Supabase (tablas: `schema.sql`) |
    | `CLAUDE_CODE_OAUTH_TOKEN` | el token del paso 3 |
 
 5. **Probar**: pestaña Actions → picks → Run workflow. La 1ª vez solo apunta dónde está cada canal; desde la 2ª reenvía.

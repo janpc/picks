@@ -203,56 +203,72 @@ async def ciclo(client, destino, yo, stats):
         db("PATCH", f"canales?id=eq.{canal}", {"ultimo_id": ultimo})
 
 
-AYUDA = ("/stats – estadísticas por tipster\n/pendientes – apuestas sin resultado\n/canales – canales vigilados\n"
-         "/nuevo nombre – vigilar un canal que sigues (añade «foto» al final si publica los picks en foto)\n"
-         "/quitar nombre – dejar de vigilarlo")
+MENU = [[("📊 Estadísticas", "stats"), ("⏳ Pendientes", "pend")], [("📺 Canales", "canales")],
+        [("➕ Añadir canal", "add"), ("➖ Quitar canal", "del")]]
+VOLVER = [[("⬅️ Menú", "menu")]]
 
 
-async def responder(client, cmd, arg):
-    if cmd == "/stats":
-        return tabla(db("GET", "picks?select=*")) if db("GET", "picks?select=id&limit=1") else "Aún no hay apuestas."
-    if cmd == "/pendientes":
+def teclado(filas):
+    return {"inline_keyboard": [[{"text": t[:60], "callback_data": d} for t, d in f] for f in filas]}
+
+
+async def pantalla(client, data, excluir):
+    """Lo que muestra el bot al pulsar cada botón: (texto, filas de botones)."""
+    if data == "stats":
+        ps = db("GET", "picks?select=*")
+        return (tabla(ps) if ps else "Aún no hay apuestas."), VOLVER
+    if data == "pend":
         ps = db("GET", "picks?res=is.null&order=fecha")
-        return "\n".join(html.escape(f"• {p['nombre']}: {p['pick']} @{p['cuota']} stake {p['stake']}") for p in ps) \
-            or "Ninguna pendiente."
-    if cmd == "/canales":
-        return "\n".join(f"• {html.escape(c['nombre'])}{' 📷' if c['fotos'] else ''}"
-                         for c in db("GET", "canales?order=nombre")) or "Ninguno."
-    if cmd == "/nuevo" and arg:
-        fotos = arg.lower().endswith(" foto")
-        nombre = arg[:-5].strip() if fotos else arg
-        hits = [d for d in await client.get_dialogs() if (d.is_channel or d.is_group) and nombre.lower() in d.name.lower()]
-        hits = [d for d in hits if d.name.lower() == nombre.lower()] or hits
-        if len(hits) != 1:
-            return "No sigues ningún canal con ese nombre." if not hits else \
-                "Hay varios, escribe el nombre exacto:\n" + "\n".join(f"• {html.escape(d.name)}" for d in hits[:15])
-        db("POST", "canales", {"id": str(hits[0].id), "nombre": hits[0].name, "fotos": fotos})
-        return f"Añadido {html.escape(hits[0].name)}{' 📷' if fotos else ''}. Desde su próximo mensaje."
-    if cmd == "/quitar" and arg:
-        hits = [c for c in db("GET", "canales") if arg.lower() in c["nombre"].lower()]
-        hits = [c for c in hits if c["nombre"].lower() == arg.lower()] or hits
-        if len(hits) != 1:
-            return "No vigilas ningún canal con ese nombre." if not hits else \
-                "Hay varios, escribe el nombre exacto:\n" + "\n".join(f"• {html.escape(c['nombre'])}" for c in hits)
-        db("DELETE", f"canales?id=eq.{hits[0]['id']}")
-        return f"Quitado {html.escape(hits[0]['nombre'])}."
-    return AYUDA
+        return ("⏳ <b>Pendientes</b>\n\n" + "\n".join(
+            html.escape(f"• {p['nombre']}: {p['pick']} @{p['cuota']} stake {p['stake']}") for p in ps)
+            if ps else "Ninguna pendiente."), VOLVER
+    if data == "canales":
+        cs = db("GET", "canales?order=nombre")
+        return "📺 <b>Canales vigilados</b> (📷 = picks en foto)\n\n" + "\n".join(
+            f"• {html.escape(c['nombre'])}{' 📷' if c['fotos'] else ''}" for c in cs), VOLVER
+    if data == "add":
+        vigilados = {c["id"] for c in db("GET", "canales?select=id")}
+        cands = [d for d in await client.get_dialogs()
+                 if d.is_channel and str(d.id) not in vigilados and d.id not in excluir]
+        return "¿Qué canal añado?", [[(d.name, f"a:{d.id}")] for d in cands[:90]] + VOLVER
+    if data == "del":
+        return "¿Qué canal quito?", [[(c["nombre"], f"q:{c['id']}")] for c in db("GET", "canales?order=nombre")] + VOLVER
+    if data.startswith(("a:", "n:")):
+        _, canal, *f = data.split(":")
+        nombre = next(d.name for d in await client.get_dialogs() if str(d.id) == canal)
+        if not f:
+            return f"¿<b>{html.escape(nombre)}</b> publica los picks en texto o solo en foto?", \
+                [[("📝 Texto", f"n:{canal}:0"), ("📷 Foto", f"n:{canal}:1")]] + VOLVER
+        db("POST", "canales", {"id": canal, "nombre": nombre, "fotos": f == ["1"]})
+        return f"✅ Añadido <b>{html.escape(nombre)}</b>. Empieza desde su próximo mensaje.", MENU
+    if data.startswith("q:"):
+        c = db("DELETE", f"canales?id=eq.{data[2:]}")
+        return (f"🗑 Quitado <b>{html.escape(c[0]['nombre'])}</b>." if c else "Ya no estaba."), MENU
+    return "¿Qué quieres hacer?", MENU
 
 
-async def comandos(client, bot, yo, offset, espera=50):
-    """Espera hasta `espera` s a que le escribas al bot; contesta solo a ti. Devuelve el offset nuevo."""
+async def comandos(client, bot, yo, offset, excluir, espera=50):
+    """Espera hasta `espera` s a que le escribas o pulses un botón; contesta solo a ti. Devuelve el offset nuevo."""
     ups = (await asyncio.to_thread(api, bot, "getUpdates", {"offset": offset, "timeout": espera}, espera + 15))["result"]
     for u in ups:
         offset = u["update_id"] + 1
-        m = u.get("message") or {}
-        if m.get("chat", {}).get("id") != yo:
+        q = u.get("callback_query")
+        m = q["message"] if q else u.get("message") or {}
+        if (q or m).get("from", {}).get("id") != yo:
             continue
-        cmd, _, arg = (m.get("text") or "").partition(" ")
         try:
-            resp = await responder(client, cmd.split("@")[0].lower(), arg.strip())
+            texto, filas = await pantalla(client, q["data"] if q else "menu", excluir)
         except Exception as e:
-            resp = f"Error: {html.escape(str(e))}"
-        api(bot, "sendMessage", {"chat_id": yo, "text": resp[:4000], "parse_mode": "HTML"})
+            texto, filas = f"Error: {html.escape(str(e))}", MENU
+        datos = {"chat_id": yo, "text": texto[:4000], "parse_mode": "HTML", "reply_markup": teclado(filas)}
+        if q:
+            api(bot, "answerCallbackQuery", {"callback_query_id": q["id"]})
+            try:
+                api(bot, "editMessageText", {**datos, "message_id": m["message_id"]})
+            except Exception:  # mismo texto que ya había: nada que cambiar
+                pass
+        else:
+            api(bot, "sendMessage", datos)
     return offset
 
 
@@ -271,9 +287,9 @@ async def main():
         stats = stats and next(d.entity for d in dialogs if d.name == stats)
         yo = (await client.get_me()).id
         offset = 0
+        excluir = {utils.get_peer_id(e) for e in (destino, stats) if e and e != "me"}
         if bot:
-            api(bot, "setMyCommands", {"commands": [{"command": l.split(" ")[0][1:], "description": l.split("– ")[1]}
-                                                    for l in AYUDA.split("\n")]})
+            api(bot, "setMyCommands", {"commands": [{"command": "start", "description": "Menú"}]})
         while True:
             try:
                 await ciclo(client, destino, yo, stats)
@@ -282,7 +298,7 @@ async def main():
             if time.time() > fin:
                 break
             try:
-                offset = await comandos(client, bot, yo, offset) if bot else await asyncio.sleep(60) or 0
+                offset = await comandos(client, bot, yo, offset, excluir) if bot else await asyncio.sleep(60) or 0
             except Exception:
                 traceback.print_exc()
                 await asyncio.sleep(60)
