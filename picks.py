@@ -102,7 +102,7 @@ def db(metodo, ruta, datos=None):
          "Prefer": "return=representation,resolution=merge-duplicates"}
     if key.startswith("eyJ"):  # clave legacy service_role
         h["Authorization"] = "Bearer " + key
-    req = urllib.request.Request(os.environ["SUPABASE_URL"].strip().rstrip("/") + "/rest/v1/" + ruta,
+    req = urllib.request.Request(os.environ["SUPABASE_URL"].strip().rstrip("/").removesuffix("/rest/v1") + "/rest/v1/" + ruta,
                                  None if datos is None else json.dumps(datos).encode(), h, method=metodo)
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
