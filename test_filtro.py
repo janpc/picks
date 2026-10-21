@@ -69,7 +69,6 @@ ms = [M(grouped_id=7, photo=1, date=t0), M(grouped_id=7, photo=1, date=t0), M(gr
       M(grouped_id=None, photo=1, date=t0), M(grouped_id=None, photo=1, date=t0 + timedelta(seconds=60)),
       M(grouped_id=None, photo=1, date=t0 + timedelta(minutes=10))]
 assert [len(g) for g in agrupar(ms)] == [2, 1, 2, 1], [len(g) for g in agrupar(ms)]
-print("ok")
 
 # estadísticas
 from picks import ganancia, tabla
@@ -80,8 +79,11 @@ assert [ganancia(p) for p in h] == [1.0, -1, 0, 0]
 assert fila(tabla(h), "A").split() == ["A", "1-1", "+0.0", "+0%"] and fila(tabla(h), "B").split()[-1] == "1", tabla(h)
 h += [dict(nombre="A", stake=None, cuota=None, res="ganada", unidades=1.29)]  # de un resumen: suma, no entra al yield
 assert ganancia(dict(stake=None, cuota=2.0, res="ganada")) == 1.0 and ganancia(dict(stake=None, res="perdida")) == -1
-assert ganancia(h[-1]) == 1.29 and fila(tabla(h), "A").split() == ["A", "2-1", "+1.3", "+0%"], tabla(h)
+assert ganancia(h[-1]) == 1.29 and fila(tabla(h), "A").split() == ["A", "2-1", "+1.3", "+30%"], tabla(h)
 c = [dict(nombre="C", stake=None, cuota=3, res="ganada", unidades=None), dict(nombre="C", stake=None, cuota=2, res="perdida",
      unidades=None), dict(nombre="C", res="sin resultado")]  # sin stake = 1u
 assert fila(tabla(c), "C").split() == ["C", "1-1", "+1.0", "+50%", "1"], tabla(c)
+# Uds y yield con el mismo signo aunque falten stakes (resumen: -2❌ sin stake)
+d = [dict(nombre="D", stake=1, cuota=1.5, res="ganada"), dict(nombre="D", stake=None, cuota=None, res="perdida", unidades=-2)]
+assert fila(tabla(d), "D").split()[2:4] == ["-1.5", "-50%"], tabla(d)
 print("ok")
