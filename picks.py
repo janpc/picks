@@ -90,21 +90,20 @@ def tabla(hist):
     filas = {}
     for p in hist:
         filas.setdefault(p["nombre"], []).append(p)
-    lineas, pend = [], 0
+    lineas = []
     for nombre, ps in filas.items():
         n = {r: sum(p["res"] == r for p in ps) for r in ("ganada", "perdida", "sin resultado", None)}
-        pend += n[None]
         u = sum(ganancia(p) for p in ps)
         # yield: sin stake se cuenta 1u (canales que nunca lo dicen), salvo si el tipster da unidades sin stake
         conocidas = [p for p in ps if (p.get("stake") or p.get("unidades") is None) and (p["res"] == "perdida" or (
             p["res"] == "ganada" and (p.get("cuota") or p.get("unidades") is not None)))]
         apostado = sum(p.get("stake") or 1 for p in conocidas)
         y = f"{100 * sum(map(ganancia, conocidas)) / apostado:+.0f}%" if apostado else "–"
-        lineas.append((u, f"{corto(nombre):<12} {n['ganada']:>2}-{n['perdida']:<2} {u:>+6.1f} {y:>5} "
-                          f"{n['sin resultado'] or '':>2}"))
-    cabecera = f"{'Tipster':<12} {'G-P':^5} {'Uds':>6} {'Yield':>5} SR"
+        lineas.append((u, f"{corto(nombre, 11):<11} {n['ganada']:>2}-{n['perdida']:<2} {u:>+5.1f} {y:>5} "
+                          f"{n['sin resultado'] or '':>2} {n[None] or '':>2}"))
+    cabecera = f"{'Tipster':<11} {'G-P':^5} {'Uds':>5} {'Yield':>5} SR Pe"
     return ("📊 <b>Estadísticas</b>\n<pre>" + html.escape("\n".join([cabecera] + [l for _, l in sorted(lineas, key=lambda x: -x[0])]))
-            + "</pre>\nG-P ganadas-perdidas · SR sin resultado publicado" + (f" · {pend} pendientes" if pend else ""))
+            + "</pre>\nG-P ganadas-perdidas · SR sin resultado publicado · Pe pendientes")
 
 
 def api(token, metodo, datos, timeout=30):

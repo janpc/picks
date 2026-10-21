@@ -77,7 +77,7 @@ fila = lambda t, nombre: next(l for l in t.split("\n") if l.startswith(nombre + 
 h = [dict(nombre="A", stake=2, cuota=1.5, res="ganada"), dict(nombre="A", stake=1, cuota=2, res="perdida"),
      dict(nombre="A", stake=1, cuota=None, res="nula"), dict(nombre="B", stake=1, cuota=3, res=None)]
 assert [ganancia(p) for p in h] == [1.0, -1, 0, 0]
-assert fila(tabla(h), "A").split() == ["A", "1-1", "+0.0", "+0%"] and "1 pendientes" in tabla(h), tabla(h)
+assert fila(tabla(h), "A").split() == ["A", "1-1", "+0.0", "+0%"] and fila(tabla(h), "B").split()[-1] == "1", tabla(h)
 h += [dict(nombre="A", stake=None, cuota=None, res="ganada", unidades=1.29)]  # de un resumen: suma, no entra al yield
 assert ganancia(dict(stake=None, cuota=2.0, res="ganada")) == 1.0 and ganancia(dict(stake=None, res="perdida")) == -1
 assert ganancia(h[-1]) == 1.29 and fila(tabla(h), "A").split() == ["A", "2-1", "+1.3", "+0%"], tabla(h)
