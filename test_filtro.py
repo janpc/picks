@@ -77,4 +77,6 @@ h = [dict(nombre="A", stake=2, cuota=1.5, res="ganada"), dict(nombre="A", stake=
      dict(nombre="A", stake=1, cuota=None, res="nula"), dict(nombre="B", stake=1, cuota=3, res=None)]
 assert [ganancia(p) for p in h] == [1.0, -1, 0, 0]
 assert "1✅ 1❌ 1➖ · +0.00u · yield +0%" in tabla(h) and "1 pendientes" in tabla(h), tabla(h)
+h += [dict(nombre="A", stake=None, cuota=None, res="ganada", unidades=1.29)]  # de un resumen: suma, no entra al yield
+assert ganancia(h[-1]) == 1.29 and "+1.29u · yield +0%" in tabla(h), tabla(h)
 print("ok")

@@ -11,9 +11,10 @@ create table picks (
   nombre text not null,
   pick text not null,
   cuota numeric,
-  stake numeric not null default 1,
+  stake numeric,                -- null = no se sabe (resúmenes)
   fecha timestamptz not null default now(),
-  res text                      -- null (pendiente), ganada, perdida, nula, sin resultado
+  res text,                     -- null (pendiente), ganada, perdida, nula, sin resultado
+  unidades numeric              -- ganancia que dice el tipster; si es null se calcula con stake y cuota
 );
 create table kv (k text primary key, v text);
 -- Sin políticas: solo la clave secreta (el script) puede leer o escribir.

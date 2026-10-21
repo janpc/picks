@@ -36,10 +36,16 @@ def clasificar(lista):
               "estadísticas, resúmenes, programación, promociones VIP o de pago, encuestas, memes. Usa el contexto: una "
               "foto tras 'pick de hoy 👇' es la apuesta; una foto tras ✅ o 'otro acierto' es un resultado.\n"
               "resultados: de los PENDIENTES de cada canal, los que los NUEVOS dan por resueltos: ganada, perdida o nula "
-              "(anulada/devuelta). Pon la cuota si el resultado la dice.\n"
-              "Devuelve SOLO este JSON (cuota y stake numéricos, null si no aparecen):\n"
+              "(anulada/devuelta). Pon la cuota si el resultado la dice, y las unidades (con signo) si las dice.\n"
+              "sueltos: resultados de los NUEVOS (p.ej. un 'Resumen del día' con una línea por apuesta) de apuestas "
+              "que NO están en PENDIENTES ni en YA RESUELTOS: una entrada por apuesta (n = el NUEVO donde sale), "
+              "sin el total del día. "
+              "stake y cuota solo si se dicen.\n"
+              "Devuelve SOLO este JSON (números sin comillas, null si no aparecen):\n"
               '{"picks": [{"n": 0, "pick": "Heerenveen +1.5 goles (Heerenveen-Excelsior)", "cuota": 1.5, "stake": 5}], '
-              '"resultados": [{"id": 12, "res": "ganada", "cuota": null}]}\n\n' + lista)
+              '"resultados": [{"id": 12, "res": "ganada", "cuota": null, "unidades": null}], '
+              '"sueltos": [{"n": 3, "pick": "Benjamin Bonzi", "res": "ganada", "unidades": 1.95, "stake": null, "cuota": null}]}'
+              '\n\n' + lista)
     env = {**os.environ, "CLAUDE_CODE_OAUTH_TOKEN": "".join(os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "").split())}
     r = subprocess.run(["claude", "-p", prompt, "--model", MODELO, "--allowedTools", "Read"],
                        capture_output=True, text=True, timeout=600, env=env)
@@ -66,6 +72,8 @@ def linea(m, foto=None):
 
 
 def ganancia(p):
+    if p.get("unidades") is not None:  # las dice el tipster (resúmenes)
+        return p["unidades"]
     if p["res"] == "ganada" and p.get("cuota"):
         return p["stake"] * (p["cuota"] - 1)
     return -p["stake"] if p["res"] == "perdida" else 0
@@ -79,9 +87,12 @@ def tabla(hist):
     for nombre, ps in filas.items():
         n = {r: sum(p["res"] == r for p in ps) for r in ("ganada", "perdida", "nula", "sin resultado", None)}
         u = sum(ganancia(p) for p in ps)
-        apostado = sum(p["stake"] for p in ps if p["res"] == "perdida" or (p["res"] == "ganada" and p.get("cuota")))
+        # yield solo con las de stake conocido (en los resúmenes casi nunca se dice)
+        conocidas = [p for p in ps if p.get("stake") and (p["res"] == "perdida" or (
+            p["res"] == "ganada" and (p.get("cuota") or p.get("unidades") is not None)))]
+        apostado = sum(p["stake"] for p in conocidas)
         lineas.append((u, f"<b>{html.escape(nombre)}</b>\n{n['ganada']}✅ {n['perdida']}❌ {n['nula']}➖ · {u:+.2f}u · yield "
-                          + (f"{100 * u / apostado:+.0f}%" if apostado else "–")
+                          + (f"{100 * sum(map(ganancia, conocidas)) / apostado:+.0f}%" if apostado else "–")
                           + (f" · {n['sin resultado']} sin resultado publicado" if n["sin resultado"] else "")
                           + (f" · {n[None]} pendientes" if n[None] else "")))
     return "📊 <b>Estadísticas</b>\n\n" + "\n\n".join(l for _, l in sorted(lineas, key=lambda x: -x[0]))
@@ -115,8 +126,8 @@ def db(metodo, ruta, datos=None):
 async def publicar(client, stats, resueltos):
     for p in resueltos:
         icono = {"ganada": "✅", "perdida": "❌", "nula": "➖"}[p["res"]]
-        await client.send_message(stats, f"{icono} {p['nombre']}: {p['pick']} @{p.get('cuota') or '?'} "
-                                         f"· stake {p['stake']} → {ganancia(p):+.2f}u")
+        await client.send_message(stats, f"{icono} {p['nombre']}: {p['pick']}" + (f" @{p['cuota']}" if p.get("cuota") else "")
+                                  + (f" · stake {p['stake']}" if p.get("stake") else "") + f" → {ganancia(p):+.2f}u")
     texto = tabla(db("GET", "picks?select=*"))
     fila = db("GET", "kv?k=eq.tabla")
     try:
@@ -130,6 +141,8 @@ async def publicar(client, stats, resueltos):
 async def ciclo(client, destino, yo, stats):
     canales = db("GET", "canales?select=*")
     pendientes = {p["id"]: p for p in db("GET", "picks?res=is.null&select=*")}
+    hace2d = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 2 * 86400))
+    recientes = db("GET", f"picks?res=not.is.null&fecha=gt.{hace2d}&select=canal,pick,res")
     grupos, contexto, nuevo = [], {}, {}  # grupos: (canal, [mensajes])
     for c in canales:
         canal = c["id"]
@@ -157,7 +170,9 @@ async def ciclo(client, destino, yo, stats):
             texto.append(f"\n=== Canal: {nombres[canal]} ===\nCONTEXTO:\n"
                          + "\n".join(f"- {linea(m)[:300]}" for m in contexto[canal]) + "\nPENDIENTES:\n"
                          + "\n".join(f"- id {p['id']}: {p['pick']} @{p['cuota']} stake {p['stake']} ({p['fecha'][:10]})"
-                                     for p in pendientes.values() if p["canal"] == canal) + "\nNUEVOS:")
+                                     for p in pendientes.values() if p["canal"] == canal) + "\nYA RESUELTOS:\n"
+                         + "\n".join(f"- {p['pick']}: {p['res']}" for p in recientes if p["canal"] == canal)
+                         + "\nNUEVOS:")
         partes = []
         for m in g:
             foto = m.photo and await m.download_media(file=os.path.abspath(f"fotos/{m.chat_id}_{m.id}.jpg"))
@@ -166,12 +181,12 @@ async def ciclo(client, destino, yo, stats):
     try:
         r = clasificar("\n".join(texto))
         elegidos = {p["n"]: p for p in r.get("picks", []) if isinstance(p.get("n"), int)}
-        resultados = r.get("resultados", [])
+        resultados, sueltos = r.get("resultados", []), r.get("sueltos", [])
     except Exception as e:
         print("Claude falló, uso las reglas:", e)
         elegidos = {i: {} for i, (c, g) in enumerate(grupos)
                     if any(es_apuesta(m.raw_text or "", bool(m.photo), c in fotos) for m in g)}
-        resultados = []
+        resultados, sueltos = [], []
     print(time.strftime("%H:%M"), f"{len(grupos)} grupos nuevos, {len(elegidos)} apuestas, {len(resultados)} resultados")
 
     bot = os.environ.get("BOT_TOKEN", "").strip()
@@ -194,8 +209,17 @@ async def ciclo(client, destino, yo, stats):
     for r in resultados:
         p = pendientes.get(r.get("id"))
         if p and r.get("res") in ("ganada", "perdida", "nula"):
-            p.update(res=r["res"], cuota=p["cuota"] or r.get("cuota"))
-            db("PATCH", f"picks?id=eq.{p['id']}", {"res": p["res"], "cuota": p["cuota"]})
+            p.update(res=r["res"], cuota=p["cuota"] or r.get("cuota"), unidades=r.get("unidades"))
+            db("PATCH", f"picks?id=eq.{p['id']}", {k: p[k] for k in ("res", "cuota", "unidades")})
+            resueltos.append(p)
+    canal_de = {i: c for i, (c, g) in enumerate(grupos)}
+    unico = next(iter(contexto)) if len(contexto) == 1 else None
+    for r in sueltos:  # n = mensaje del resumen, para saber de qué canal es
+        canal = canal_de.get(r.get("n")) or unico
+        if canal and r.get("pick") and r.get("res") in ("ganada", "perdida", "nula"):
+            p = {"canal": canal, "nombre": nombres[canal], "pick": r["pick"], "res": r["res"],
+                 "unidades": r.get("unidades"), "stake": r.get("stake"), "cuota": r.get("cuota")}
+            db("POST", "picks", p)
             resueltos.append(p)
     # ponytail: a los 4 días sin resultado se da por no publicado; subir si hay picks de largo plazo
     limite = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 4 * 86400))
