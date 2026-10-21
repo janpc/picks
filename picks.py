@@ -80,23 +80,31 @@ def ganancia(p):
     return -stake if p["res"] == "perdida" else 0
 
 
+def corto(nombre, n=12):
+    """Nombre sin emojis ni adornos, para que quepa en la columna."""
+    limpio = " ".join("".join(c if c.isalnum() or c in " .-" else " " for c in nombre).split())
+    return limpio.replace("Pensador ", "P. ")[:n]
+
+
 def tabla(hist):
     filas = {}
     for p in hist:
         filas.setdefault(p["nombre"], []).append(p)
-    lineas = []
+    lineas, pend = [], 0
     for nombre, ps in filas.items():
-        n = {r: sum(p["res"] == r for p in ps) for r in ("ganada", "perdida", "nula", "sin resultado", None)}
+        n = {r: sum(p["res"] == r for p in ps) for r in ("ganada", "perdida", "sin resultado", None)}
+        pend += n[None]
         u = sum(ganancia(p) for p in ps)
         # yield: sin stake se cuenta 1u (canales que nunca lo dicen), salvo si el tipster da unidades sin stake
         conocidas = [p for p in ps if (p.get("stake") or p.get("unidades") is None) and (p["res"] == "perdida" or (
             p["res"] == "ganada" and (p.get("cuota") or p.get("unidades") is not None)))]
         apostado = sum(p.get("stake") or 1 for p in conocidas)
-        lineas.append((u, f"<b>{html.escape(nombre)}</b>\n{n['ganada']}✅ {n['perdida']}❌ {n['nula']}➖ · {u:+.2f}u · yield "
-                          + (f"{100 * sum(map(ganancia, conocidas)) / apostado:+.0f}%" if apostado else "–")
-                          + (f" · {n['sin resultado']} sin resultado publicado" if n["sin resultado"] else "")
-                          + (f" · {n[None]} pendientes" if n[None] else "")))
-    return "📊 <b>Estadísticas</b>\n\n" + "\n\n".join(l for _, l in sorted(lineas, key=lambda x: -x[0]))
+        y = f"{100 * sum(map(ganancia, conocidas)) / apostado:+.0f}%" if apostado else "–"
+        lineas.append((u, f"{corto(nombre):<12} {n['ganada']:>2}-{n['perdida']:<2} {u:>+6.1f} {y:>5} "
+                          f"{n['sin resultado'] or '':>2}"))
+    cabecera = f"{'Tipster':<12} {'G-P':^5} {'Uds':>6} {'Yield':>5} SR"
+    return ("📊 <b>Estadísticas</b>\n<pre>" + html.escape("\n".join([cabecera] + [l for _, l in sorted(lineas, key=lambda x: -x[0])]))
+            + "</pre>\nG-P ganadas-perdidas · SR sin resultado publicado" + (f" · {pend} pendientes" if pend else ""))
 
 
 def api(token, metodo, datos, timeout=30):
@@ -247,9 +255,13 @@ async def pantalla(client, data, excluir):
         return (tabla(ps) if ps else "Aún no hay apuestas."), VOLVER
     if data == "pend":
         ps = db("GET", "picks?res=is.null&order=fecha")
-        return ("⏳ <b>Pendientes</b>\n\n" + "\n".join(
-            html.escape(f"• {p['nombre']}: {p['pick']} @{p['cuota']} stake {p['stake']}") for p in ps)
-            if ps else "Ninguna pendiente."), VOLVER
+        texto, anterior = "⏳ <b>Pendientes</b>", None
+        for p in sorted(ps, key=lambda p: p["nombre"]):
+            if p["nombre"] != anterior:
+                anterior = p["nombre"]
+                texto += f"\n\n<b>{html.escape(corto(p['nombre'], 30))}</b>"
+            texto += html.escape(f"\n· {p['pick'][:45]}" + (f" @{p['cuota']:g}" if p["cuota"] else ""))
+        return (texto if ps else "Ninguna pendiente."), VOLVER
     if data == "canales":
         cs = db("GET", "canales?order=nombre")
         return "📺 <b>Canales vigilados</b> (📷 = picks en foto)\n\n" + "\n".join(
