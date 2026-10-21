@@ -74,9 +74,10 @@ def linea(m, foto=None):
 def ganancia(p):
     if p.get("unidades") is not None:  # las dice el tipster (resúmenes)
         return p["unidades"]
+    stake = p.get("stake") or 1  # sin stake ni unidades se cuenta como 1u (no entra al yield)
     if p["res"] == "ganada" and p.get("cuota"):
-        return p["stake"] * (p["cuota"] - 1)
-    return -p["stake"] if p["res"] == "perdida" else 0
+        return stake * (p["cuota"] - 1)
+    return -stake if p["res"] == "perdida" else 0
 
 
 def tabla(hist):
