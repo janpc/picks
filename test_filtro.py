@@ -81,3 +81,6 @@ h += [dict(nombre="A", stake=None, cuota=None, res="ganada", unidades=1.29)]  # 
 assert ganancia(dict(stake=None, cuota=2.0, res="ganada")) == 1.0 and ganancia(dict(stake=None, res="perdida")) == -1
 assert ganancia(h[-1]) == 1.29 and "+1.29u · yield +0%" in tabla(h), tabla(h)
 print("ok")
+assert "+1.00u · yield +50%" in tabla([dict(nombre="C", stake=None, cuota=3, res="ganada", unidades=None),
+                               dict(nombre="C", stake=None, cuota=2, res="perdida", unidades=None)])  # sin stake = 1u
+print("ok")

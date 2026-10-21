@@ -74,7 +74,7 @@ def linea(m, foto=None):
 def ganancia(p):
     if p.get("unidades") is not None:  # las dice el tipster (resúmenes)
         return p["unidades"]
-    stake = p.get("stake") or 1  # sin stake ni unidades se cuenta como 1u (no entra al yield)
+    stake = p.get("stake") or 1  # sin stake se cuenta como 1u
     if p["res"] == "ganada" and p.get("cuota"):
         return stake * (p["cuota"] - 1)
     return -stake if p["res"] == "perdida" else 0
@@ -88,10 +88,10 @@ def tabla(hist):
     for nombre, ps in filas.items():
         n = {r: sum(p["res"] == r for p in ps) for r in ("ganada", "perdida", "nula", "sin resultado", None)}
         u = sum(ganancia(p) for p in ps)
-        # yield solo con las de stake conocido (en los resúmenes casi nunca se dice)
-        conocidas = [p for p in ps if p.get("stake") and (p["res"] == "perdida" or (
+        # yield: sin stake se cuenta 1u (canales que nunca lo dicen), salvo si el tipster da unidades sin stake
+        conocidas = [p for p in ps if (p.get("stake") or p.get("unidades") is None) and (p["res"] == "perdida" or (
             p["res"] == "ganada" and (p.get("cuota") or p.get("unidades") is not None)))]
-        apostado = sum(p["stake"] for p in conocidas)
+        apostado = sum(p.get("stake") or 1 for p in conocidas)
         lineas.append((u, f"<b>{html.escape(nombre)}</b>\n{n['ganada']}✅ {n['perdida']}❌ {n['nula']}➖ · {u:+.2f}u · yield "
                           + (f"{100 * sum(map(ganancia, conocidas)) / apostado:+.0f}%" if apostado else "–")
                           + (f" · {n['sin resultado']} sin resultado publicado" if n["sin resultado"] else "")
