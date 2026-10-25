@@ -149,9 +149,9 @@ async def publicar(client, stats, resueltos):
 
 async def ciclo(client, destino, yo, stats):
     canales = db("GET", "canales?select=*")
-    hace25d = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 25 * 86400))
-    # las SR también, hasta 10 días después de pasar a SR (15 + 10): si el resultado llega tarde, aún se empareja
-    pendientes = {p["id"]: p for p in db("GET", f"picks?or=(res.is.null,and(res.eq.sin%20resultado,fecha.gt.{hace25d}))")}
+    hace70d = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 70 * 86400))
+    # las SR también, hasta 60 días después de pasar a SR (10 + 60): si el resultado llega tarde, aún se empareja
+    pendientes = {p["id"]: p for p in db("GET", f"picks?or=(res.is.null,and(res.eq.sin%20resultado,fecha.gt.{hace70d}))")}
     hace2d = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 2 * 86400))
     recientes = db("GET", f"picks?res=not.is.null&fecha=gt.{hace2d}&select=canal,pick,res")
     grupos, contexto, nuevo = [], {}, {}  # grupos: (canal, [mensajes])
@@ -232,8 +232,8 @@ async def ciclo(client, destino, yo, stats):
                  "unidades": r.get("unidades"), "stake": r.get("stake"), "cuota": r.get("cuota")}
             db("POST", "picks", p)
             resueltos.append(p)
-    # ponytail: a los 15 días sin resultado se da por no publicado; apuestas a meses vista acabarán en SR
-    limite = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 15 * 86400))
+    # a los 10 días sin resultado pasa a SR (sigue resoluble 60 días más)
+    limite = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 10 * 86400))
     db("PATCH", f"picks?res=is.null&fecha=lt.{limite}", {"res": "sin resultado"})
     if resueltos and stats:
         await publicar(client, stats, resueltos)
