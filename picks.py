@@ -284,18 +284,26 @@ async def pantalla(client, data, excluir):
         db("POST", "canales", {"id": canal, "nombre": nombre, "fotos": f == ["1"]})
         return f"✅ Añadido <b>{html.escape(nombre)}</b>. Empieza desde su próximo mensaje.", MENU
     if data == "res":
-        ps = db("GET", "picks?or=(res.is.null,res.eq.sin%20resultado)&order=fecha&limit=60")
-        return "¿Qué apuesta resuelves? (❓ = sin resultado)", [[(
-            f"{'❓' if p['res'] else '⏳'} {corto(p['nombre'], 10)}: {p['pick']}", f"r:{p['id']}")] for p in ps] + VOLVER
+        ps = db("GET", "picks?or=(res.is.null,res.eq.sin%20resultado)&select=canal,nombre")
+        cuenta = {}
+        for p in ps:
+            cuenta[(p["canal"], p["nombre"])] = cuenta.get((p["canal"], p["nombre"]), 0) + 1
+        return ("¿De qué tipster?" if ps else "No hay nada por resolver."), \
+            [[(f"{corto(n, 30)} ({k})", f"rt:{c}")] for (c, n), k in sorted(cuenta.items(), key=lambda x: x[0][1])] + VOLVER
+    if data.startswith("rt:"):
+        ps = db("GET", f"picks?canal=eq.{data[3:]}&or=(res.is.null,res.eq.sin%20resultado)&order=fecha")
+        return ((f"<b>{html.escape(ps[0]['nombre'])}</b>\n¿Qué apuesta resuelves? (❓ = sin resultado)" if ps
+                 else "No le queda nada por resolver."),
+                [[(f"{'❓' if p['res'] else '⏳'} {p['pick']}", f"r:{p['id']}")] for p in ps] + [[("⬅️ Tipsters", "res")]])
     if data.startswith("r:"):
         p = db("GET", f"picks?id=eq.{data[2:]}")[0]
         return f"<b>{html.escape(p['nombre'])}</b>\n{html.escape(p['pick'])}" + (f" @{p['cuota']:g}" if p["cuota"] else ""), \
             [[("✅ Ganada", f"R:{p['id']}:ganada"), ("❌ Perdida", f"R:{p['id']}:perdida"), ("➖ Nula", f"R:{p['id']}:nula")],
-             [("⬅️ Volver", "res")]]
+             [("⬅️ Volver", f"rt:{p['canal']}")]]
     if data.startswith("R:"):
         _, i, res = data.split(":")
-        db("PATCH", f"picks?id=eq.{i}", {"res": res})
-        texto, filas = await pantalla(client, "res", excluir)
+        p = db("PATCH", f"picks?id=eq.{i}", {"res": res})[0]
+        texto, filas = await pantalla(client, f"rt:{p['canal']}", excluir)
         return f"Marcada como {res}.\n\n" + texto, filas
     if data.startswith("q:"):
         c = db("DELETE", f"canales?id=eq.{data[2:]}")
