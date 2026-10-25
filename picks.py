@@ -149,9 +149,9 @@ async def publicar(client, stats, resueltos):
 
 async def ciclo(client, destino, yo, stats):
     canales = db("GET", "canales?select=*")
-    hace60d = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 60 * 86400))
-    # las SR también: si el resultado llega tarde, aún se emparejan
-    pendientes = {p["id"]: p for p in db("GET", f"picks?or=(res.is.null,and(res.eq.sin%20resultado,fecha.gt.{hace60d}))")}
+    hace25d = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 25 * 86400))
+    # las SR también, hasta 10 días después de pasar a SR (15 + 10): si el resultado llega tarde, aún se empareja
+    pendientes = {p["id"]: p for p in db("GET", f"picks?or=(res.is.null,and(res.eq.sin%20resultado,fecha.gt.{hace25d}))")}
     hace2d = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 2 * 86400))
     recientes = db("GET", f"picks?res=not.is.null&fecha=gt.{hace2d}&select=canal,pick,res")
     grupos, contexto, nuevo = [], {}, {}  # grupos: (canal, [mensajes])
