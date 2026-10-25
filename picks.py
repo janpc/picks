@@ -230,8 +230,8 @@ async def ciclo(client, destino, yo, stats):
                  "unidades": r.get("unidades"), "stake": r.get("stake"), "cuota": r.get("cuota")}
             db("POST", "picks", p)
             resueltos.append(p)
-    # ponytail: a los 4 días sin resultado se da por no publicado; subir si hay picks de largo plazo
-    limite = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 4 * 86400))
+    # ponytail: a los 15 días sin resultado se da por no publicado; apuestas a meses vista acabarán en SR
+    limite = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 15 * 86400))
     db("PATCH", f"picks?res=is.null&fecha=lt.{limite}", {"res": "sin resultado"})
     if resueltos and stats:
         await publicar(client, stats, resueltos)
