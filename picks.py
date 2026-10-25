@@ -149,7 +149,9 @@ async def publicar(client, stats, resueltos):
 
 async def ciclo(client, destino, yo, stats):
     canales = db("GET", "canales?select=*")
-    pendientes = {p["id"]: p for p in db("GET", "picks?res=is.null&select=*")}
+    hace60d = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 60 * 86400))
+    # las SR también: si el resultado llega tarde, aún se emparejan
+    pendientes = {p["id"]: p for p in db("GET", f"picks?or=(res.is.null,and(res.eq.sin%20resultado,fecha.gt.{hace60d}))")}
     hace2d = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 2 * 86400))
     recientes = db("GET", f"picks?res=not.is.null&fecha=gt.{hace2d}&select=canal,pick,res")
     grupos, contexto, nuevo = [], {}, {}  # grupos: (canal, [mensajes])
@@ -239,7 +241,7 @@ async def ciclo(client, destino, yo, stats):
         db("PATCH", f"canales?id=eq.{canal}", {"ultimo_id": ultimo})
 
 
-MENU = [[("📊 Estadísticas", "stats"), ("⏳ Pendientes", "pend")], [("📺 Canales", "canales")],
+MENU = [[("📊 Estadísticas", "stats"), ("⏳ Pendientes", "pend")], [("📺 Canales", "canales"), ("✍️ Resolver", "res")],
         [("➕ Añadir canal", "add"), ("➖ Quitar canal", "del")]]
 VOLVER = [[("⬅️ Menú", "menu")]]
 
@@ -281,6 +283,20 @@ async def pantalla(client, data, excluir):
                 [[("📝 Texto", f"n:{canal}:0"), ("📷 Foto", f"n:{canal}:1")]] + VOLVER
         db("POST", "canales", {"id": canal, "nombre": nombre, "fotos": f == ["1"]})
         return f"✅ Añadido <b>{html.escape(nombre)}</b>. Empieza desde su próximo mensaje.", MENU
+    if data == "res":
+        ps = db("GET", "picks?or=(res.is.null,res.eq.sin%20resultado)&order=fecha&limit=60")
+        return "¿Qué apuesta resuelves? (❓ = sin resultado)", [[(
+            f"{'❓' if p['res'] else '⏳'} {corto(p['nombre'], 10)}: {p['pick']}", f"r:{p['id']}")] for p in ps] + VOLVER
+    if data.startswith("r:"):
+        p = db("GET", f"picks?id=eq.{data[2:]}")[0]
+        return f"<b>{html.escape(p['nombre'])}</b>\n{html.escape(p['pick'])}" + (f" @{p['cuota']:g}" if p["cuota"] else ""), \
+            [[("✅ Ganada", f"R:{p['id']}:ganada"), ("❌ Perdida", f"R:{p['id']}:perdida"), ("➖ Nula", f"R:{p['id']}:nula")],
+             [("⬅️ Volver", "res")]]
+    if data.startswith("R:"):
+        _, i, res = data.split(":")
+        db("PATCH", f"picks?id=eq.{i}", {"res": res})
+        texto, filas = await pantalla(client, "res", excluir)
+        return f"Marcada como {res}.\n\n" + texto, filas
     if data.startswith("q:"):
         c = db("DELETE", f"canales?id=eq.{data[2:]}")
         return (f"🗑 Quitado <b>{html.escape(c[0]['nombre'])}</b>." if c else "Ya no estaba."), MENU
