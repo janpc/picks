@@ -14,13 +14,15 @@ SI = re.compile(r"""
 | crear\ apuesta | mi\ apuesta\ para\ hoy                   # Tercera Apuestas
 | nueva\ apuesta                                            # ¡Nueva Apuesta!
 """, re.I | re.M | re.X)
+# Venta de picks de pago que presumen del acierto ("LOS QUE APROVECHARON LA OFERTA... PRIMER VERDE ✅")
+NO = re.compile(r"\boferta|\bverdes?\b|aprovecharon|\bvip\b", re.I)
 
 
 def es_apuesta(texto, foto=False, canal_fotos=False):
     # ponytail: heurística de fotos, solo si Claude falla (Claude sí mira la imagen)
     if canal_fotos and foto and len(texto) <= 60 and not re.search("[✅❌🔴]", texto):
         return True
-    return bool(SI.search(texto))
+    return bool(SI.search(texto)) and not NO.search(texto)
 
 
 def clasificar(lista):
@@ -33,7 +35,10 @@ def clasificar(lista):
               "NO son picks: boletos con la selección tapada, borrosa o recortada (fardar del VIP); boletos ya resueltos "
               "(✅❌, 'ganada', 'cobrado', marcador final) o capturas de ganancias/importes; anuncios de otros canales "
               "o tipsters aunque digan 'gratis'; avisos de que viene un pick ('Pick FREE 21:00h', 'en 2 minutos'); "
-              "estadísticas, resúmenes, programación, promociones VIP o de pago, encuestas, memes. Usa el contexto: una "
+              "estadísticas, resúmenes, programación, promociones VIP o de pago, encuestas, memes. Ojo: la publicidad de "
+              "un pack/oferta de pago a menudo copia la apuesta que ya ganó ('los que aprovecharon la oferta ya se llevan "
+              "el primer verde ✅', 'disponible en Asia', 'último día') con evento y cuota: NO es un pick gratis; 'verde' "
+              "= ganada. Usa el contexto: una "
               "foto tras 'pick de hoy 👇' es la apuesta; una foto tras ✅ o 'otro acierto' es un resultado.\n"
               "resultados: de los PENDIENTES de cada canal, los que los NUEVOS dan por resueltos: ganada, perdida o nula "
               "(anulada/devuelta). Pon la cuota si el resultado la dice, y las unidades (con signo) si las dice.\n"

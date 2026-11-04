@@ -53,6 +53,7 @@ NO = [
     "📋 Picks 24 de agosto, RESULTADOS:\n\n👉 Bolonia - Lazio (X) @3.1 ❌\n👉 Clermont - Sochaux (X) @3 ✅",
     "Seguimos sumando con la Champions!! ✅ Faltaron 2 córners del PSG para la cuota 7!!!",
     "🇪🇸\nEn poco más de 1 hora arranca nuestro pick!",
+    "💰 LOS QUE APROVECHARON LA OFERTA DE AYER YA SE LLEVAN EL PRIMER VERDE!!! 🤑✅\n\n🌏 ¡DISPONIBLE EN ASIA CON MÁXIMO ENORME! 💰🐳\n\n⚽ NAEG OHYANG FC FEMENINO -4.5\n📈 CUOTA 1.825 🔥",
     "🔥 DEXTER PICKS \n\n📊 Nuevo tipster con estadísticas públicas\n\n🟢 ¡ACCESO TOTALMENTE GRATUITO!\n\n🔗 https://t.me/+N-HiM_TVyXk4ZjY0\n\n\nPick FREE Winamax !! 21:00h",
 ]
 FOTO_SI = ["", "Se juega en 3h… coronamos con Sascha!?"]
