@@ -3,6 +3,9 @@ on:
   schedule: [{cron: "0 * * * *"}]  # cada hora; si hay una corriendo, la siguiente espera y la releva
   workflow_dispatch:
 concurrency: picks
+permissions:
+  actions: write  # para encargar el relevo
+  contents: read
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -22,3 +25,8 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           DURACION: 20400  # 5h40m conectado, revisando cada minuto
+      # Relevo: el cron de GitHub a veces se salta horas y quedaba un hueco sin job. Solo si acabó bien (evita bucles si peta).
+      - run: gh workflow run picks.yml --ref main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
